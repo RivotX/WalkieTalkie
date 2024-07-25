@@ -20,6 +20,6 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/App.js"
+    "start": "npm run build && node dist/App.js"
   }
 }
