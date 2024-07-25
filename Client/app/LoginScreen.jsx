@@ -205,7 +205,7 @@ const LoginScreen = ({ SetLayoutLogged }) => {
         {/* Log in or Sign up */}
         <TouchableOpacity style={tw`mt-2`}>
           <Text style={tw`text-blue-500`} onPress={() => { setLogSign(!LogSign); setBadLogin(false); setFormError(''); }}>
-            {LogSign ? "Already have an account? Log In" : "Don't have an account? Sign Up"}
+            {LogSign ? "Don't have an account? Sign Up" : "Already have an account? Log In"}
           </Text>
         </TouchableOpacity>
       </SafeAreaView>
