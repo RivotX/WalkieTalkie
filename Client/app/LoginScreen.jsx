@@ -76,14 +76,14 @@ const LoginScreen = ({ SetLayoutLogged }) => {
   //sumbit de login o registro
   const { SERVER_URL } = getEnvVars();
   const handleSumbit = () => {
+    console.log("sd")
     if (LogSign) {
       if (username.trim().length === 0 || password.trim().length === 0) {
         setBadLogin(true);
         setBadLoginMsg('Please enter both your username and password.');
         return;
       }
-      axios.post(SERVER_URL + '/login', { username, password })
-      axios.post('/login', { username, password })
+      axios.post(SERVER_URL+'/login', { username, password })
         .then((res) => {
           console.log(res);
           if (res.status === 200) {

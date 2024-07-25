@@ -113,20 +113,19 @@ const AudioComponent = ({ currentRoom, userID }) => {
 
   // renderiza UI del componente
   return (
-    <Text style={tw`text-red-500`}>AudioComponent</Text>
-    // <View style={tw`flex items-center justify-center`}>
-    //   <View style={tw`flex-row items-center justify-center`}>
-    //     {recordedAudio &&
-    //       (<TouchableOpacity onPress={playSound} disabled={!recordedAudio} style={tw`p-2 mx-2 bg-green-500 rounded-full ${!recordedAudio ? 'bg-gray-300' : ''}`}>
-    //         <FontAwesome5 name="play" size={32} color="white" />
-    //       </TouchableOpacity>)
-    //     }
-    //     <TouchableOpacity onPress={onPressHandler} style={tw`p-[7px] mx-2 ${recording ? 'bg-red-500 h-20 w-20' : 'bg-blue-500'} rounded-full`}>
-    //       <FontAwesome5 name={recording ? "stop-circle" : "microphone"} size={recording ? 64 : 40} color="white" />
-    //     </TouchableOpacity>
-    //   </View>
-    //   {recording && <Text style={tw`mt-4 text-blue-500`}>Grabando...</Text>}
-    // </View>
+    <View style={tw`flex items-center justify-center`}>
+      <View style={tw`flex-row items-center justify-center`}>
+        {recordedAudio &&
+          (<TouchableOpacity onPress={playSound} disabled={!recordedAudio} style={tw`p-2 mx-2 bg-green-500 rounded-full ${!recordedAudio ? 'bg-gray-300' : ''}`}>
+            <FontAwesome5 name="play" size={32} color="white" />
+          </TouchableOpacity>)
+        }
+        <TouchableOpacity onPress={onPressHandler} style={tw`p-[7px] mx-2 ${recording ? 'bg-red-500 h-20 w-20' : 'bg-blue-500'} rounded-full`}>
+          <FontAwesome5 name={recording ? "stop-circle" : "microphone"} size={recording ? 64 : 40} color="white" />
+        </TouchableOpacity>
+      </View>
+      {recording && <Text style={tw`mt-4 text-blue-500`}>Grabando...</Text>}
+    </View>
   );
 
 };
