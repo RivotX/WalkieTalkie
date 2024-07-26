@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 import tw from 'twrnc';
 import { Image, View, Text, SafeAreaView, TouchableOpacity, Modal } from 'react-native';
 import ProfileIcon from '../assets/images/ProfileIcon.png';
-import LoginScreen from './LoginScreen';
+import MainLogin from './MainLogin';
 import ConfigIcon from '../components/ConfigIcon';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useThemeColor } from '../hooks/useThemeColor';
@@ -131,7 +131,7 @@ export default function RootLayout() {
           </Stack >
         ) : (
           // If not logged in, show the LoginScreen without navigation
-          <LoginScreen SetLayoutLogged={SetLayoutLogged} />
+          <MainLogin SetLayoutLogged={SetLayoutLogged} />
         )}
       </SafeAreaView>
     </GestureHandlerRootView>
