@@ -12,6 +12,6 @@ This is a mobile application developed using React Native and ExpressJS. It enab
 
 ## Technologies Used
 
-- **Frontend**: React Native
-- **Backend**: ExpressJS
+- **Frontend**: React Native (JavaScript)
+- **Backend**: ExpressJS (TypeScript)
 - **Real-time Communication**: Socket.io
