@@ -6,6 +6,8 @@ import cors from 'cors';
 import { Sequelize, DataTypes, Model, Op } from 'sequelize';
 import bcrypt from 'bcrypt';
 import fs from 'fs';
+import { Json } from 'sequelize/types/utils';
+import { Z_DATA_ERROR } from 'zlib';
 
 const app = express();
 const server = createServer(app);
@@ -27,8 +29,9 @@ const sequelize = new Sequelize({
 
 app.use(
   cors({
-    origin: ['http://localhost:8081'],
+    origin: "http://localhost:8081",
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json());
@@ -41,7 +44,7 @@ app.use(
       secure: false, // Establece a true si estás usando HTTPS
     },
     resave: true,
-    saveUninitialized: true,
+    saveUninitialized: false,
   })
 );
 // =================================================================
@@ -52,7 +55,7 @@ class Users extends Model {
   declare username: string;
   declare email: string;
   declare password: string;
-  declare groups: string;
+  declare groups: string; 
 
   // Method to set the password, hashes password and sets the password
   setPassword(password: string): void {
@@ -71,6 +74,10 @@ class Users extends Model {
       `Checking password for ${this.username}: ${result} - ${this.password} - ${password}`
     ); // Debug print
     return result;
+  }
+
+  setgroups(groups: object): void {
+    this.groups = JSON.stringify(groups); ;
   }
 
   // TypeScript representation of Python's __repr__ method
@@ -101,6 +108,7 @@ Users.init(
     groups: {
       type: DataTypes.JSON,
       allowNull: true,
+      defaultValue: [],
     },
   },
   {
@@ -133,14 +141,12 @@ app.post('/create-user', async (req, res) => {
 });
 
 app.get('/getsession', async (req, res) => {
-  console.log('server user: ' + req.session.user);
-  res.send(req.session);
+  res.json(req.session);
 });
 
 
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  console.log('server user: ' + username);
 
   const user = await Users.findOne({
     where: {
@@ -149,7 +155,11 @@ app.post('/login', async (req, res) => {
   });
 
   if (user && user.checkPassword(password)) {
-    req.session.user = "user.dataValues"; // Store user info in session
+    user.dataValues.password = undefined; // Remove password from user info
+    user.dataValues.groups= JSON.parse(user.dataValues.groups) // Remove groups from user info
+    req.session.user = user.dataValues; // Store user info in session
+    req.session.save();
+    console.log('SESIONESSSSSSSSSSSSSSS:', req.session);
     res.status(200).send('Login successful');
   } else {
     res.status(401).send('Invalid login');
@@ -257,29 +267,81 @@ Messages.init(
 );
 
 io.on('connection', (socket: Socket) => {
-  console.log(`User connected: ${socket.id}`);
-  socket.on('join', async (data) => {
-    const { currentRoom } = data;
-    socket.join(currentRoom);
-    socket.to(currentRoom).emit('notification', `${data.username} has entered the room.`);
-    console.log(`${data.username} joined room: ${currentRoom}`);
-  });
-  socket.on('leaveAllRooms', (username) => {
-    const rooms = socket.rooms; // O cualquier otra lógica para identificar al usuario
 
-    // Iterar sobre todas las salas a las que el usuario está unido
-    for (let room of rooms) {
-      // Asegurarse de no sacar al usuario de su propia sala de socket
-      if (room !== socket.id) {
-        socket.leave(room);
-        console.log(`${username} left room ${room}`);
+  let groups = socket.handshake.query.groups as string | undefined
+    let groupsAmI: string[] = [];
+    if (typeof groups === 'string' && groups.trim()) {
+      try {
+        groupsAmI = JSON.parse(groups);
+      } catch (error) {
+        console.error('Error parsing groups:', error);
+        groupsAmI = []; // En caso de error, usa un array vacío
       }
     }
 
-    // Aquí puedes emitir un evento de confirmación si es necesario
-    // Por ejemplo, para confirmar que el usuario ha salido de todas las salas
-    socket.emit('leftAllRooms', { success: true });
+    groupsAmI.forEach((group) => {
+      socket.join(group);
+      console.log('User joined room:', group);
+    });
+
+    console.log('User connected:', socket.id);
+ 
+ 
+ 
+
+
+  socket.on('join', async (data) => {
+    const { currentRoom } = data;
+    socket.join(currentRoom);
+    console.log("salas", socket.rooms);
+    console.log("Entra a una sala");
+    console.log(data.userID);
+
+    const user= await Users.findOne({
+      where: {
+        id: data.userID,
+      },
+    });
+    if(user && user.groups){
+      let groups=JSON.parse(user.groups);
+      
+      if(typeof groups === 'string'){
+        groups=JSON.parse(groups);
+        }
+        if(!groups.includes(currentRoom)){
+        groups.push(currentRoom)
+        user.setgroups(groups);   
+        user.save()
+        .then(() => {
+          console.log('Los cambios han sido guardados exitosamente.');
+        })
+        .catch(error => {
+          console.error('Error al guardar los cambios: ', error);
+        });
+      }
+      else{
+        console.log("Ya esta en el grupo");
+      }
+  }
+    socket.to(currentRoom).emit('notification', `${user? user.username: "null"} has entered the room.`);
+    console.log(`${user? user.username: "null"} joined room: ${currentRoom}`);
   });
+  // socket.on('leaveAllRooms', (username) => {
+  //   const rooms = socket.rooms; // O cualquier otra lógica para identificar al usuario
+
+  //   // Iterar sobre todas las salas a las que el usuario está unido
+  //   for (let room of rooms) {
+  //     // Asegurarse de no sacar al usuario de su propia sala de socket
+  //     if (room !== socket.id) {
+  //       socket.leave(room);
+  //       console.log(`${username} left room ${room}`);
+  //     }
+  //   }
+
+  //   // Aquí puedes emitir un evento de confirmación si es necesario
+  //   // Por ejemplo, para confirmar que el usuario ha salido de todas las salas
+  //   socket.emit('leftAllRooms', { success: true });
+  // });
 
   socket.on('send-audio', (audioData, room) => {
     // Emitir el audio recibido a todos los demás clientes conectados
