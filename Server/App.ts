@@ -34,10 +34,14 @@ app.use(
 app.use(express.json());
 app.use(
   session({
-    secret: 'supersecretkey',
-    resave: false,
+    secret: "secreto",
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24, // 1 día en milisegundos
+      httpOnly: true,
+      secure: false, // Establece a true si estás usando HTTPS
+    },
+    resave: true,
     saveUninitialized: true,
-    cookie: { maxAge: 20000 * 60 * 1000, secure: true },
   })
 );
 // =================================================================
@@ -48,6 +52,7 @@ class Users extends Model {
   declare username: string;
   declare email: string;
   declare password: string;
+  declare groups: string;
 
   // Method to set the password, hashes password and sets the password
   setPassword(password: string): void {
@@ -92,6 +97,11 @@ Users.init(
       allowNull: false,
     },
     password: DataTypes.STRING(128),
+
+    groups: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
   },
   {
     sequelize, // This is the sequelize instance
@@ -122,6 +132,12 @@ app.post('/create-user', async (req, res) => {
   }
 });
 
+app.get('/getsession', async (req, res) => {
+  console.log('server user: ' + req.session.user);
+  res.send(req.session);
+});
+
+
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   console.log('server user: ' + username);
@@ -133,7 +149,7 @@ app.post('/login', async (req, res) => {
   });
 
   if (user && user.checkPassword(password)) {
-    req.session.user = user.dataValues; // Store user info in session
+    req.session.user = "user.dataValues"; // Store user info in session
     res.status(200).send('Login successful');
   } else {
     res.status(401).send('Invalid login');
@@ -241,6 +257,7 @@ Messages.init(
 );
 
 io.on('connection', (socket: Socket) => {
+  console.log(`User connected: ${socket.id}`);
   socket.on('join', async (data) => {
     const { currentRoom } = data;
     socket.join(currentRoom);
@@ -275,9 +292,12 @@ io.on('connection', (socket: Socket) => {
   });
 });
 
-app.listen(3000, () => {
-  console.log('Express Server running on port 3000');
-});
-server.listen(3001, () => {
-  console.log('Socket.io Server running on port 3001');
+
+sequelize.sync({ alter: true }).then(() => {
+    app.listen(3000, () => {
+      console.log('Express Server running on port 3000');
+    });
+    server.listen(3001, () => {
+      console.log('Socket.io Server running on port 3001');
+    });
 });

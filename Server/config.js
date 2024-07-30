@@ -2,8 +2,8 @@ import Constants from 'expo-constants';
 
 const ENV = {
   dev: {
-    SERVER_URL: 'http://:3000', // add your ip here. Example: 'http://(ip):3000'
-    SOCKET_URL: 'http://:3001', // add your ip here. Example: 'http://(ip):3000'
+    SERVER_URL: 'http://192.168.1.18:3000', // add your ip here. Example: 'http://(ip):3000'
+    SOCKET_URL: 'http://192.168.1.18:3001', // add your ip here. Example: 'http://(ip):3000'
   },
   staging: {
     SERVER_URL: 'https://staging-server-url.com',

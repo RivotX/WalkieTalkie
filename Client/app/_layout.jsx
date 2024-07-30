@@ -27,12 +27,21 @@ export default function RootLayout() {
   // Controla si la sesión esta logeada
   useEffect(() => {
     checkLoginStatus()
+    console.log("Carga la pagina")
   }, []);
 
   const checkLoginStatus = async () => {
+    console.log("ENTRA A CHECKLOGINSTATUS")
     const loggedIn = await AsyncStorage.getItem('isLoggedIn');
     setIsLoggedIn(loggedIn === 'true');
+    
   };
+
+  useEffect(() => {
+    axios.get(`${SERVER_URL}/getsession`,{ withCredentials: true })
+    .then((response) => {console.log("SESSIONEEEEEEEEEEEEEEEEEES",response.data)})
+    .catch((error) => {console.log(error)});
+  }, [isLoggedIn])
   
   // logout
   const { SERVER_URL } = getEnvVars();
