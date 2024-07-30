@@ -5,27 +5,37 @@ import { Audio } from 'expo-av';
 import { FontAwesome5 } from '@expo/vector-icons'; // Assuming usage of Expo vector icons for simplicity
 import getEnvVars from '../config';
 import io from 'socket.io-client';
+import axios from 'axios';
 
 const { SOCKET_URL } = getEnvVars();
-const socket = io(SOCKET_URL);
+let socket=io(SOCKET_URL);
 const AudioComponent = ({ currentRoom, userID }) => {
   // Estados 
   const [recording, setRecording] = useState();
   const [permissionStatus, setPermissionStatus] = useState(null);
   const [recordedAudio, setRecordedAudio] = useState(null);
-
+  const [groups, setGroups] = useState("");
   // Cuando el componente se monta, pide permisos de audio
   useEffect(() => {
+    
     (async () => {
       const { status } = await Audio.requestPermissionsAsync();
       setPermissionStatus(status === 'granted'); // Actualiza los permisos (true o false)
     })();
+    console.log('entro a audio component');
+    
+  }, [currentRoom]);
 
-  }, []);
+  useEffect(() => {
+    axios.get(`http://localhost:3000/getsession`,{ withCredentials: true })
+    .then((res) => {console.log("SESSIONES",res.data); socket=io(SOCKET_URL,{ query : { groups: res.data.user.groups }})})
+    .catch((error) => {console.log(error)});
+    console.log('entro esta cosa');
+  },[]);
 
 
   useEffect(() => {
-    socket.emit('leaveAllRooms', userID);
+    if (!currentRoom) return;
     socket.emit('join', { currentRoom: currentRoom, userID: userID });
     console.log('user ', userID, ' Joined room ', currentRoom);
   }, [currentRoom]);
@@ -74,6 +84,7 @@ const AudioComponent = ({ currentRoom, userID }) => {
   };
 
   useEffect(() => {
+    console.log('Listening for audio data from room', currentRoom);
     socket.on('receive-audio', async (base64Audio, room) => {
       console.log('Received audio data from room', room);
       const uri = `data:audio/wav;base64,${base64Audio}`;

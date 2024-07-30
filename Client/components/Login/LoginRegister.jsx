@@ -79,7 +79,7 @@ const LoginRegister = ({ LoginScreen }) => {
         setBadLoginMsg('Please enter both your username and password.');
         return;
       }
-      axios.post(SERVER_URL + '/login', { username, password }, { withCredentials: true })
+      axios.post(`http://localhost:3000/login`, { username, password }, { withCredentials: true })
         .then((res) => {
           console.log(res);
           if (res.status === 200) {
