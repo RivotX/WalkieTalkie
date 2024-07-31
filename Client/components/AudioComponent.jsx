@@ -8,13 +8,15 @@ import io from 'socket.io-client';
 import axios from 'axios';
 
 const { SOCKET_URL } = getEnvVars();
-let socket=io(SOCKET_URL);
+// let socket=io(SOCKET_URL,{ query : { groups: "[]" }})
+// let socket;
 const AudioComponent = ({ currentRoom, userID }) => {
   // Estados 
   const [recording, setRecording] = useState();
   const [permissionStatus, setPermissionStatus] = useState(null);
   const [recordedAudio, setRecordedAudio] = useState(null);
   const [groups, setGroups] = useState("");
+  const [socket, setSocket] = useState(null); // Estado para manejar la instancia del socket
   // Cuando el componente se monta, pide permisos de audio
   useEffect(() => {
     
@@ -27,11 +29,44 @@ const AudioComponent = ({ currentRoom, userID }) => {
   }, [currentRoom]);
 
   useEffect(() => {
-    axios.get(`http://localhost:3000/getsession`,{ withCredentials: true })
-    .then((res) => {console.log("SESSIONES",res.data); socket=io(SOCKET_URL,{ query : { groups: res.data.user.groups }})})
-    .catch((error) => {console.log(error)});
-    console.log('entro esta cosa');
+    
   },[]);
+
+  useEffect(() => {
+    let newsocket;
+    axios.get(`http://localhost:3000/getsession`,{ withCredentials: true })
+    .then((res) => {
+      console.log("SESSIONES",res.data);
+      newsocket=io(SOCKET_URL,{ query : { groups: res.data.user.groups }}); 
+      setSocket(newsocket); })
+    .catch((error) => {console.log(error)});
+
+    return () => {
+      newsocket.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+  if(socket!=null){
+    socket.on('receive-audio', async (base64Audio, room) => {
+      console.log('Received audio data from room', room);
+      const uri = `data:audio/wav;base64,${base64Audio}`;
+      console.log("audioUri", uri);
+
+      // Play audio using expo-av
+      const { sound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true }
+      );
+      await sound.setVolumeAsync(1.0); // Ensure volume is set to maximum
+      await sound.playAsync();
+    });
+
+    return () => {
+      socket.off('receive-audio');
+    };
+  }
+  }, [socket]);
 
 
   useEffect(() => {
@@ -62,6 +97,7 @@ const AudioComponent = ({ currentRoom, userID }) => {
 
   // Funcion para detener la grabacion de audio
   const stopRecording = async () => {
+    
     try {
       setRecording(undefined);
       await recording.stopAndUnloadAsync();
@@ -83,26 +119,7 @@ const AudioComponent = ({ currentRoom, userID }) => {
     // Actualiza el estado con la URI del audio grabado
   };
 
-  useEffect(() => {
-    console.log('Listening for audio data from room', currentRoom);
-    socket.on('receive-audio', async (base64Audio, room) => {
-      console.log('Received audio data from room', room);
-      const uri = `data:audio/wav;base64,${base64Audio}`;
-      console.log("audioUri", uri);
-
-      // Play audio using expo-av
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true }
-      );
-      await sound.setVolumeAsync(1.0); // Ensure volume is set to maximum
-      await sound.playAsync();
-    });
-
-    return () => {
-      socket.off('receive-audio');
-    };
-  }, []);
+  
 
   //  Funcion para reproducir el audio grabado 
   const playSound = async () => {
