@@ -5,27 +5,73 @@ import { Audio } from 'expo-av';
 import { FontAwesome5 } from '@expo/vector-icons'; // Assuming usage of Expo vector icons for simplicity
 import getEnvVars from '../config';
 import io from 'socket.io-client';
+import axios from 'axios';
 
 const { SOCKET_URL } = getEnvVars();
-const socket = io(SOCKET_URL);
+// let socket=io(SOCKET_URL,{ query : { groups: "[]" }})
+// let socket;
 const AudioComponent = ({ currentRoom, userID }) => {
   // Estados 
   const [recording, setRecording] = useState();
   const [permissionStatus, setPermissionStatus] = useState(null);
   const [recordedAudio, setRecordedAudio] = useState(null);
-
+  const [groups, setGroups] = useState([]);
+  const [socket, setSocket] = useState(null); // Estado para manejar la instancia del socket
   // Cuando el componente se monta, pide permisos de audio
   useEffect(() => {
+    
     (async () => {
       const { status } = await Audio.requestPermissionsAsync();
       setPermissionStatus(status === 'granted'); // Actualiza los permisos (true o false)
     })();
+    console.log('entro a audio component');
+    
+  }, [currentRoom]);
 
+  useEffect(() => {
+    
+  },[]);
+
+  useEffect(() => {
+    let newsocket;
+    axios.get(`http://localhost:3000/getsession`,{ withCredentials: true })
+    .then((res) => {
+      console.log("SESSIONES",res.data);
+      newsocket=io(SOCKET_URL,{ query : { groups: res.data.user.groups }}); 
+      setSocket(newsocket);
+      setGroups(JSON.parse(res.data.user.groups)); })
+    .catch((error) => {console.log(error)});
+
+    return () => {
+      newsocket.disconnect();
+    };
   }, []);
+
+  useEffect(() => {
+  if(socket!=null){
+    socket.on('receive-audio', async (base64Audio, room) => {
+      console.log('Received audio data from room', room);
+      const uri = `data:audio/wav;base64,${base64Audio}`;
+      console.log("audioUri", uri);
+
+      // Play audio using expo-av
+      const { sound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true }
+      );
+      await sound.setVolumeAsync(1.0); // Ensure volume is set to maximum
+      await sound.playAsync();
+    });
+
+    return () => {
+      socket.off('receive-audio');
+    };
+  }
+  }, [socket]);
 
 
   useEffect(() => {
-    socket.emit('leaveAllRooms', userID);
+    if (!currentRoom) return;
     socket.emit('join', { currentRoom: currentRoom, userID: userID });
     console.log('user ', userID, ' Joined room ', currentRoom);
   }, [currentRoom]);
@@ -52,6 +98,7 @@ const AudioComponent = ({ currentRoom, userID }) => {
 
   // Funcion para detener la grabacion de audio
   const stopRecording = async () => {
+    
     try {
       setRecording(undefined);
       await recording.stopAndUnloadAsync();
@@ -73,25 +120,7 @@ const AudioComponent = ({ currentRoom, userID }) => {
     // Actualiza el estado con la URI del audio grabado
   };
 
-  useEffect(() => {
-    socket.on('receive-audio', async (base64Audio, room) => {
-      console.log('Received audio data from room', room);
-      const uri = `data:audio/wav;base64,${base64Audio}`;
-      console.log("audioUri", uri);
-
-      // Play audio using expo-av
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true }
-      );
-      await sound.setVolumeAsync(1.0); // Ensure volume is set to maximum
-      await sound.playAsync();
-    });
-
-    return () => {
-      socket.off('receive-audio');
-    };
-  }, []);
+  
 
   //  Funcion para reproducir el audio grabado 
   const playSound = async () => {
@@ -114,6 +143,10 @@ const AudioComponent = ({ currentRoom, userID }) => {
   // renderiza UI del componente
   return (
     <View style={tw`flex items-center justify-center`}>
+      <Text style={tw`text-xl font-bold text-blue-500`}>Salas Unidas:
+         {groups.map((group, index)=>(
+            <Text key={index} style={tw`text-xl font-bold text-blue-500`}> {group}, </Text>
+         ))} </Text>
       <View style={tw`flex-row items-center justify-center`}>
         {recordedAudio &&
           (<TouchableOpacity onPress={playSound} disabled={!recordedAudio} style={tw`p-2 mx-2 bg-green-500 rounded-full ${!recordedAudio ? 'bg-gray-300' : ''}`}>

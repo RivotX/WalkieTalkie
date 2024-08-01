@@ -19,6 +19,7 @@ export default function RootLayout() {
   const [isLoggedIn, setIsLoggedIn] = useState(false) //cambialo para probar el login
   const SoftbackgroundColor = useThemeColor({}, 'Softbackground');
   const textColor = useThemeColor({}, 'text');
+  const [username, setUsername] = useState('username');
 
   SetLayoutLogged = (value) => {
     setIsLoggedIn(value)
@@ -27,12 +28,21 @@ export default function RootLayout() {
   // Controla si la sesión esta logeada
   useEffect(() => {
     checkLoginStatus()
+    console.log("Carga la pagina")
   }, []);
 
   const checkLoginStatus = async () => {
+    console.log("ENTRA A CHECKLOGINSTATUS")
     const loggedIn = await AsyncStorage.getItem('isLoggedIn');
     setIsLoggedIn(loggedIn === 'true');
+    
   };
+
+  useEffect(() => {
+    axios.get(`http://localhost:3000/getsession`,{ withCredentials: true })
+    .then((res) => {console.log("SESSIONEEEEEEEEEEEEEEEEEES",res.data); setUsername(res.data.user.username)})
+    .catch((error) => {console.log(error)});
+  }, [isLoggedIn])
   
   // logout
   const { SERVER_URL } = getEnvVars();
@@ -59,7 +69,7 @@ export default function RootLayout() {
                 headerLeft: () => (
                   <View style={tw`flex-row items-center `}>
                     <Image source={ProfileIcon} style={tw`w-8 h-8 mr-2`} />
-                    <Text style={tw`text-base font-semibold text-[${textColor}]`}>RivotX</Text>
+                    <Text style={tw`text-base font-semibold text-[${textColor}]`}>{username} </Text>
                   </View>
                 ),
                 headerRight: () => {
