@@ -4,8 +4,8 @@ import tw from 'twrnc';
 import { Audio } from 'expo-av';
 import { FontAwesome5 } from '@expo/vector-icons'; // Assuming usage of Expo vector icons for simplicity
 import getEnvVars from '../config';
-import io from 'socket.io-client';
 import axios from 'axios';
+import { useSocket } from './context/SocketContext';
 
 const { SOCKET_URL } = getEnvVars();
 // let socket=io(SOCKET_URL,{ query : { groups: "[]" }})
@@ -16,7 +16,7 @@ const AudioComponent = ({ currentRoom, userID }) => {
   const [permissionStatus, setPermissionStatus] = useState(null);
   const [recordedAudio, setRecordedAudio] = useState(null);
   const [groups, setGroups] = useState([]);
-  const [socket, setSocket] = useState(null); // Estado para manejar la instancia del socket
+  const [socket, setSocket] = useState(useSocket()); // Estado para manejar la instancia del socket
   // Cuando el componente se monta, pide permisos de audio
   useEffect(() => {
     
@@ -32,20 +32,20 @@ const AudioComponent = ({ currentRoom, userID }) => {
     
   },[]);
 
-  useEffect(() => {
-    let newsocket;
-    axios.get(`http://localhost:3000/getsession`,{ withCredentials: true })
-    .then((res) => {
-      console.log("SESSIONES",res.data);
-      newsocket=io(SOCKET_URL,{ query : { groups: res.data.user.groups }}); 
-      setSocket(newsocket);
-      setGroups(JSON.parse(res.data.user.groups)); })
-    .catch((error) => {console.log(error)});
+  // useEffect(() => {
+  //   let newsocket;
+  //   axios.get(`http://localhost:3000/getsession`,{ withCredentials: true })
+  //   .then((res) => {
+  //     console.log("SESSIONES",res.data);
+  //     newsocket=io(SOCKET_URL,{ query : { groups: res.data.user.groups }}); 
+  //     setSocket(newsocket);
+  //     setGroups(JSON.parse(res.data.user.groups)); })
+  //   .catch((error) => {console.log(error)});
 
-    return () => {
-      newsocket.disconnect();
-    };
-  }, []);
+  //   return () => {
+  //     newsocket.disconnect();
+  //   };
+  // }, []);
 
   useEffect(() => {
   if(socket!=null){

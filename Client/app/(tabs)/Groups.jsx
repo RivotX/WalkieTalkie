@@ -5,7 +5,7 @@ import tw from 'twrnc';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useNavigation } from '@react-navigation/native'; // Import useNavigation
 import { Ionicons } from '@expo/vector-icons';
-
+import { useSocket } from '../../components/context/SocketContext';
 
 export default function TabTwoScreen() {
   const backgroundColor = useThemeColor({}, 'background');
