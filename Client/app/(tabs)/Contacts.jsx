@@ -9,6 +9,7 @@ import ChatComponent from '../../components/ChatComponent';
 import UwUIcon from '../../assets/images/adaptive-icon.png';
 import emoGirlIcon from '../../assets/images/emoGirlIcon.png';
 import { MicProvider } from '../../components/context/MicContext';
+import { useSocket } from '../../components/context/SocketContext';
 
 export default function TabTwoScreen() {
   const backgroundColor = useThemeColor({}, 'background');
