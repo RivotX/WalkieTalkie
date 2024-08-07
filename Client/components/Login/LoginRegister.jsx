@@ -2,16 +2,9 @@ import { React, useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
 import tw from 'twrnc';
 import { useThemeColor } from '../../hooks/useThemeColor';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import getEnvVars from '../../config';
-
-WebBrowser.maybeCompleteAuthSession();
-
-const webClientId = "918481238590-vu5ui1gpmjphu3djas8mtk9qqbc5er2m.apps.googleusercontent.com";
-const androidClientId = "918481238590-bv2fdn6pvi18g7imgghfu9b8s4scclbo.apps.googleusercontent.com";
 
 const LoginRegister = ({ LoginScreen }) => {
   const [username, setUsername] = useState('');
@@ -26,19 +19,6 @@ const LoginRegister = ({ LoginScreen }) => {
 
   const [formError, setFormError] = useState('');
   const [LoginScreenState, setLoginScreenState] = useState(LoginScreen);
-  // ====== google login (no funciona) ======
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    webClientId,
-    androidClientId,
-    // iosClientId, // Si tienes un ID de cliente para iOS, agrégalo aquí
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      console.log('ID Token:', id_token);
-    }
-  }, [response]);
 
   // ====== Validar campos de registro ======
   const validateForm = () => {
@@ -72,14 +52,15 @@ const LoginRegister = ({ LoginScreen }) => {
 
   const { SERVER_URL } = getEnvVars();
   const handleSumbit = () => {
-    console.log("sd")
+    console.log("login pulsado")
     if (LoginScreenState) {
       if (username.trim().length === 0 || password.trim().length === 0) {
         setBadLogin(true);
         setBadLoginMsg('Please enter both your username and password.');
         return;
       }
-      axios.post(`http://localhost:3000/login`, { username, password }, { withCredentials: true })
+      // axios.post(`${SERVER_URL}/login`, { username, password }, { withCredentials: true })
+        axios.post(`http://localhost:3000/login`, { username, password }, { withCredentials: true })
         .then((res) => {
           console.log(res);
           if (res.status === 200) {
@@ -183,13 +164,6 @@ const LoginRegister = ({ LoginScreen }) => {
         <Text style={tw`text-[white] text-center`}>
           {LoginScreenState ? "Log in" : "Register"}
         </Text>
-      </TouchableOpacity>
-
-      {/* Google Login Button */}
-      <TouchableOpacity
-        style={tw`bg-blue-300 py-3 mt-4 rounded-lg w-1/2 text-${textColor}`}
-        onPress={() => { promptAsync(); }}>
-        <Text style={tw`text-[white] text-center`}>Use your Google account</Text>
       </TouchableOpacity>
 
       {/* Forgot Password */}
