@@ -29,15 +29,15 @@ const sequelize = new Sequelize({
 
 app.use(
   cors({
-    origin: "http://localhost:8081",
+    origin: 'http://localhost:8081',
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(express.json());
 app.use(
   session({
-    secret: "secreto",
+    secret: 'secreto',
     cookie: {
       maxAge: 1000 * 60 * 60 * 24, // 1 día en milisegundos
       httpOnly: true,
@@ -55,7 +55,7 @@ class Users extends Model {
   declare username: string;
   declare email: string;
   declare password: string;
-  declare groups: string; 
+  declare groups: string;
 
   // Method to set the password, hashes password and sets the password
   setPassword(password: string): void {
@@ -77,7 +77,7 @@ class Users extends Model {
   }
 
   setgroups(groups: object): void {
-    this.groups = JSON.stringify(groups); ;
+    this.groups = JSON.stringify(groups);
   }
 
   // TypeScript representation of Python's __repr__ method
@@ -144,9 +144,11 @@ app.get('/getsession', async (req, res) => {
   res.json(req.session);
 });
 
-
 app.post('/login', async (req, res) => {
+  console.log('Entrando a login');
+
   const { username, password } = req.body;
+  console.log(`Username: ${username}`);
 
   const user = await Users.findOne({
     where: {
@@ -155,11 +157,12 @@ app.post('/login', async (req, res) => {
   });
 
   if (user && user.checkPassword(password)) {
+    console.log('User found in database');
     user.dataValues.password = undefined; // Remove password from user info
-    user.dataValues.groups= JSON.parse(user.dataValues.groups) // Remove groups from user info
+    user.dataValues.groups = JSON.parse(user.dataValues.groups); // Remove groups from user info
     req.session.user = user.dataValues; // Store user info in session
     req.session.save();
-    console.log('SESIONESSSSSSSSSSSSSSS:', req.session);
+    console.log('sesion guardada:', req.session);
     res.status(200).send('Login successful');
   } else {
     res.status(401).send('Invalid login');
@@ -267,64 +270,61 @@ Messages.init(
 );
 
 io.on('connection', (socket: Socket) => {
-
-  let groups = socket.handshake.query.groups as string | undefined
-    let groupsAmI: string[] = [];
-    if (typeof groups === 'string' && groups.trim()) {
-      try {
-        groupsAmI = JSON.parse(groups);
-      } catch (error) {
-        console.error('Error parsing groups:', error);
-        groupsAmI = []; // En caso de error, usa un array vacío
-      }
+  let groups = socket.handshake.query.groups as string | undefined;
+  let groupsAmI: string[] = [];
+  if (typeof groups === 'string' && groups.trim()) {
+    try {
+      groupsAmI = JSON.parse(groups);
+    } catch (error) {
+      console.error('Error parsing groups:', error);
+      groupsAmI = []; // En caso de error, usa un array vacío
     }
-
+  }
+  if (groupsAmI) {
     groupsAmI.forEach((group) => {
       socket.join(group);
       console.log('User joined room:', group);
     });
-
-    console.log('User connected:', socket.id);
- 
- 
- 
-
+  }
+  console.log('User connected:', socket.id);
 
   socket.on('join', async (data) => {
     const { currentRoom } = data;
     socket.join(currentRoom);
-    console.log("salas", socket.rooms);
-    console.log("Entra a una sala");
-    console.log(data.userID);
+    console.log('salas', socket.rooms);
+    console.log('Entra a una sala');
+    console.log('UserID:', data.userID);
 
-    const user= await Users.findOne({
+    const user = await Users.findOne({
       where: {
         id: data.userID,
       },
     });
-    if(user && user.groups){
-      let groups=JSON.parse(user.groups);
-      
-      if(typeof groups === 'string'){
-        groups=JSON.parse(groups);
-        }
-        if(!groups.includes(currentRoom)){
-        groups.push(currentRoom)
-        user.setgroups(groups);   
-        user.save()
-        .then(() => {
-          console.log('Los cambios han sido guardados exitosamente.');
-        })
-        .catch(error => {
-          console.error('Error al guardar los cambios: ', error);
-        });
+    if (user && user.groups) {
+      let groups = JSON.parse(user.groups);
+
+      if (typeof groups === 'string') {
+        groups = JSON.parse(groups);
       }
-      else{
-        console.log("Ya esta en el grupo");
+      if (!groups.includes(currentRoom)) {
+        groups.push(currentRoom);
+        user.setgroups(groups);
+        user
+          .save()
+          .then(() => {
+            console.log('Los cambios han sido guardados exitosamente.');
+          })
+          .catch((error) => {
+            console.error('Error al guardar los cambios: ', error);
+          });
+      } else {
+        console.log('Ya esta en el grupo');
       }
-  }
-    socket.to(currentRoom).emit('notification', `${user? user.username: "null"} has entered the room.`);
-    console.log(`${user? user.username: "null"} joined room: ${currentRoom}`);
+    }
+    socket
+      .to(currentRoom)
+      .emit('notification', `${user ? user.username : 'null'} has entered the room.`);
+    console.log(`${user ? user.username : 'null'} joined room: ${currentRoom}`);
   });
   // socket.on('leaveAllRooms', (username) => {
   //   const rooms = socket.rooms; // O cualquier otra lógica para identificar al usuario
@@ -354,12 +354,104 @@ io.on('connection', (socket: Socket) => {
   });
 });
 
+ // =================================================================
+ // *Solicitudes de amistad* 
+ // =================================================================
+ class FriendRequests extends Model {
+  declare id: number;
+  declare senderId: number;
+  declare receiverId: number;
+  declare status: 'pending' | 'accepted' | 'rejected';
+  declare createdAt: Date;
+  declare updatedAt: Date;
+}
 
+FriendRequests.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    senderId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'Users', // nombre del modelo de usuarios
+        key: 'id',
+      },
+    },
+    receiverId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'Users', // nombre del modelo de usuarios
+        key: 'id',
+      },
+    },
+    status: {
+      type: DataTypes.ENUM('pending', 'accepted', 'rejected'),
+      defaultValue: 'pending',
+      allowNull: false,
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+  },
+  {
+    sequelize, // Instancia de Sequelize
+    modelName: 'FriendRequests',
+    tableName: 'friend_requests', // Nombre de la tabla en la base de datos
+  }
+);
+app.post('/send-friend-request', async (req, res) => {
+  const { senderId, receiverId } = req.body;
+
+  if (senderId === receiverId) {
+    return res.status(400).json({ message: 'No puedes enviarte una solicitud de amistad a ti mismo.' });
+  }
+
+  // Verificar si la solicitud ya existe
+  const existingRequest = await FriendRequests.findOne({
+    where: {
+      senderId,
+      receiverId,
+      status: 'pending',
+    },
+  });
+
+  if (existingRequest) {
+    return res.status(400).json({ message: 'Ya has enviado una solicitud de amistad a este usuario.' });
+  }
+
+  try {
+    // Crear la solicitud de amistad
+    await FriendRequests.create({
+      senderId,
+      receiverId,
+    });
+
+    // Notificar al receptor (opcional)
+    // io.to(receiverId).emit('friend-request', { senderId });
+
+    res.status(201).json({ message: 'Solicitud de amistad enviada.' });
+  } catch (error) {
+    console.error('Error enviando solicitud de amistad:', error);
+    res.status(500).json({ message: 'Error al enviar la solicitud de amistad.' });
+  }
+});
+
+ //==== fin solicitudes de amistad ===================================
 sequelize.sync({ alter: true }).then(() => {
-    app.listen(3000, () => {
-      console.log('Express Server running on port 3000');
-    });
-    server.listen(3001, () => {
-      console.log('Socket.io Server running on port 3001');
-    });
+  app.listen(3000, () => {
+    console.log('Express Server running on port 3000');
+  });
+  server.listen(3001, () => {
+    console.log('Socket.io Server running on port 3001');
+  });
 });
