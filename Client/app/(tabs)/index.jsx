@@ -6,19 +6,22 @@ import tw from 'twrnc';
 import AudioComponent from '../../components/AudioComponent';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import axios from 'axios';
+import getEnvVars from '../../config';
 
 const Index = () => {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const [currentRoom, setCurrentRoom] = useState(null);
   const rooms = ['room1', 'room2', 'room3', 'room4', 'room5'];
-  const [userID,setUserID] = useState();
+  const [userID, setUserID] = useState();
+  const { SERVER_URL } = getEnvVars();
 
 
   useEffect(() => {
     axios.get(`http://localhost:3000/getsession`,{ withCredentials: true })
-    .then((res) => {console.log("SESSIONEEEEEEEEEEEEEEEEEES",res.data); setUserID(res.data.user.id)})
-    .catch((error) => {console.log(error)});
+    // axios.get(`${SERVER_URL}/getsession`, { withCredentials: true })
+      .then((res) => { console.log("SESSIONEEEEEEEEEEEEEEEEEES", res.data); setUserID(res.data.user.id) })
+      .catch((error) => { console.log(error) });
   }, [])
   return (
     <View style={tw`flex-1 items-center justify-center bg-[${backgroundColor}]`}>

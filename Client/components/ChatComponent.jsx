@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useMic } from '.././components/context/MicContext';
 import UserProfileModal from './modals/UserProfileModal';
 
-const ChatComponent = ({ user, onPress, icon }) => {
+const ChatComponent = ({ user, onPress, icon, onAdd }) => {
   const textColor = useThemeColor({}, 'text');
   const [micColor, setMicColor] = useState(textColor);
   const { activeMic, setActiveMic } = useMic();
@@ -91,7 +91,7 @@ const ChatComponent = ({ user, onPress, icon }) => {
                 </Animated.View>
               </TouchableOpacity>
             ) :
-              <TouchableOpacity style={tw`px-5`}>
+              <TouchableOpacity style={tw`px-5`} onPress={onAdd}>
                 <Ionicons name="person-add" size={22} color={textColor} />
               </TouchableOpacity>
             }

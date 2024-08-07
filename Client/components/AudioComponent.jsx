@@ -19,18 +19,18 @@ const AudioComponent = ({ currentRoom, userID }) => {
   const [socket, setSocket] = useState(useSocket()); // Estado para manejar la instancia del socket
   // Cuando el componente se monta, pide permisos de audio
   useEffect(() => {
-    
+
     (async () => {
       const { status } = await Audio.requestPermissionsAsync();
       setPermissionStatus(status === 'granted'); // Actualiza los permisos (true o false)
     })();
     console.log('entro a audio component');
-    
+
   }, [currentRoom]);
 
   useEffect(() => {
-    
-  },[]);
+
+  }, []);
 
   // useEffect(() => {
   //   let newsocket;
@@ -48,25 +48,25 @@ const AudioComponent = ({ currentRoom, userID }) => {
   // }, []);
 
   useEffect(() => {
-  if(socket!=null){
-    socket.on('receive-audio', async (base64Audio, room) => {
-      console.log('Received audio data from room', room);
-      const uri = `data:audio/wav;base64,${base64Audio}`;
-      console.log("audioUri", uri);
+    if (socket != null) {
+      socket.on('receive-audio', async (base64Audio, room) => {
+        console.log('Received audio data from room', room);
+        const uri = `data:audio/wav;base64,${base64Audio}`;
+        console.log("audioUri", uri);
 
-      // Play audio using expo-av
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true }
-      );
-      await sound.setVolumeAsync(1.0); // Ensure volume is set to maximum
-      await sound.playAsync();
-    });
+        // Play audio using expo-av
+        const { sound } = await Audio.Sound.createAsync(
+          { uri },
+          { shouldPlay: true }
+        );
+        await sound.setVolumeAsync(1.0); // Ensure volume is set to maximum
+        await sound.playAsync();
+      });
 
-    return () => {
-      socket.off('receive-audio');
-    };
-  }
+      return () => {
+        socket.off('receive-audio');
+      };
+    }
   }, [socket]);
 
 
@@ -98,7 +98,7 @@ const AudioComponent = ({ currentRoom, userID }) => {
 
   // Funcion para detener la grabacion de audio
   const stopRecording = async () => {
-    
+
     try {
       setRecording(undefined);
       await recording.stopAndUnloadAsync();
@@ -120,7 +120,7 @@ const AudioComponent = ({ currentRoom, userID }) => {
     // Actualiza el estado con la URI del audio grabado
   };
 
-  
+
 
   //  Funcion para reproducir el audio grabado 
   const playSound = async () => {
@@ -144,9 +144,9 @@ const AudioComponent = ({ currentRoom, userID }) => {
   return (
     <View style={tw`flex items-center justify-center`}>
       <Text style={tw`text-xl font-bold text-blue-500`}>Salas Unidas:
-         {groups.map((group, index)=>(
-            <Text key={index} style={tw`text-xl font-bold text-blue-500`}> {group}, </Text>
-         ))} </Text>
+        {groups.map((group, index) => (
+          <Text key={index} style={tw`text-xl font-bold text-blue-500`}> {group}, </Text>
+        ))} </Text>
       <View style={tw`flex-row items-center justify-center`}>
         {recordedAudio &&
           (<TouchableOpacity onPress={playSound} disabled={!recordedAudio} style={tw`p-2 mx-2 bg-green-500 rounded-full ${!recordedAudio ? 'bg-gray-300' : ''}`}>

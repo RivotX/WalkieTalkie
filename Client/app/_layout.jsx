@@ -35,19 +35,23 @@ export default function RootLayout() {
     console.log("ENTRA A CHECKLOGINSTATUS")
     const loggedIn = await AsyncStorage.getItem('isLoggedIn');
     setIsLoggedIn(loggedIn === 'true');
-    
+
   };
 
+  const { SERVER_URL } = getEnvVars();
   useEffect(() => {
     axios.get(`http://localhost:3000/getsession`,{ withCredentials: true })
-    .then((res) => {console.log("SESSIONEEEEEEEEEEEEEEEEEES",res.data); setUsername(res.data.user.username)})
-    .catch((error) => {console.log(error)});
+    // axios.get(`${SERVER_URL}/getsession`, { withCredentials: true })
+      .then((res) => {
+        console.log("SESSIONEEEEEEEEEEEEEEEEEES", res.data);
+        setUsername(res.data.user.username)
+      })
+      .catch((error) => { console.log(error) });
   }, [isLoggedIn])
-  
+
   // logout
-  const { SERVER_URL } = getEnvVars();
   const handleLogout = async () => {
-    
+
     axios.post(`${SERVER_URL}/logout`)
       .then((response) => {
         AsyncStorage.removeItem('isLoggedIn');

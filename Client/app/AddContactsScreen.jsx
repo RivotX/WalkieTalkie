@@ -50,6 +50,20 @@ export default function AddContactsScreen() {
   useEffect(() => {
     console.log(userFound);
   }, [userFound]);
+
+  // Solicitud de amistad
+  const addUser = (senderId, receiverId) => {
+    console.log("addUser",'senderID: ', senderId, 'receiverId: ', receiverId);
+    axios.post(`${SERVER_URL}/send-friend-request`, { senderId, receiverId })
+    // axios.post(`http://localhost:3000/send-friend-request`, { username })
+      .then((res) => {
+        console.log(res.data);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  };
+
   return (
     <View style={tw`flex-1 bg-[${backgroundColor}]`}>
       {/* Top Bar */}
@@ -90,7 +104,7 @@ export default function AddContactsScreen() {
             <MicProvider key={index}>
               <ChatComponent
                 user={user}
-                onPress={() => console.log("pressed")}
+                onAdd={() => { addUser('rivotx', user.name); }}
                 icon="+"
               />
             </MicProvider>
