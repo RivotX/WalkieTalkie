@@ -15,7 +15,6 @@ const AudioComponent = ({ currentRoom, userID }) => {
   const [recording, setRecording] = useState();
   const [permissionStatus, setPermissionStatus] = useState(null);
   const [recordedAudio, setRecordedAudio] = useState(null);
-  const [groups, setGroups] = useState([]);
   const [socket, setSocket] = useState(useSocket()); // Estado para manejar la instancia del socket
   // Cuando el componente se monta, pide permisos de audio
   useEffect(() => {
@@ -143,10 +142,6 @@ const AudioComponent = ({ currentRoom, userID }) => {
   // renderiza UI del componente
   return (
     <View style={tw`flex items-center justify-center`}>
-      <Text style={tw`text-xl font-bold text-blue-500`}>Salas Unidas:
-        {groups.map((group, index) => (
-          <Text key={index} style={tw`text-xl font-bold text-blue-500`}> {group}, </Text>
-        ))} </Text>
       <View style={tw`flex-row items-center justify-center`}>
         {recordedAudio &&
           (<TouchableOpacity onPress={playSound} disabled={!recordedAudio} style={tw`p-2 mx-2 bg-green-500 rounded-full ${!recordedAudio ? 'bg-gray-300' : ''}`}>

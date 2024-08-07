@@ -8,6 +8,8 @@ import ChatComponent from "../components/ChatComponent";
 import { MicProvider } from "../components/context/MicContext";
 import emoGirlIcon from "../assets/images/emoGirlIcon.png";
 import getEnvVars from "../config";
+import { useSocket } from '../components/context/SocketContext';
+
 
 export default function AddContactsScreen() {
   const backgroundColor = useThemeColor({}, "background");
@@ -16,12 +18,22 @@ export default function AddContactsScreen() {
   const inputRef = useRef(null); // Create a ref for the TextInput
   const [text, setText] = useState(""); // Step 1: State for tracking text input
   const [userFound, setUserFound] = useState(undefined); // Step 2: State to track if user is found
+  const [username, setUsername] = useState();
+  const [socket, setSocket] = useState(useSocket());
   const [users, setUsers] = useState([
     {
       name: "",
       profile: emoGirlIcon,
     },
   ]);
+
+
+  useEffect(() => {
+    axios.get(`http://localhost:3000/getsession`, { withCredentials: true })
+      // axios.get(`${SERVER_URL}/getsession`, { withCredentials: true })
+      .then((res) => { console.log("SESSIONEEEEEEEEEEEEEEEEEES", res.data); setUsername(res.data.user.username) })
+      .catch((error) => { console.log(error) });
+  }, [])
 
   const { SERVER_URL } = getEnvVars();
   const onSearchUser = () => {
@@ -51,17 +63,26 @@ export default function AddContactsScreen() {
     console.log(userFound);
   }, [userFound]);
 
+  useEffect(() => {
+    if (socket != null) {
+      socket.on('receive_request', (senderId) => {
+        console.log('Solicitud recibida de:', data.senderId);
+      });
+      return () => {
+        socket.disconnect();
+      };
+    }
+  }, [socket]);
+
   // Solicitud de amistad
   const addUser = (senderId, receiverId) => {
-    console.log("addUser",'senderID: ', senderId, 'receiverId: ', receiverId);
-    axios.post(`${SERVER_URL}/send-friend-request`, { senderId, receiverId })
-    // axios.post(`http://localhost:3000/send-friend-request`, { username })
-      .then((res) => {
-        console.log(res.data);
-      })
-      .catch((err) => {
-        console.error(err);
-      });
+    if (socket != null) {
+      socket.emit('send_request', { senderId, receiverId });
+
+    console.log('Solicitud enviada a:', receiverId);
+    }
+
+
   };
 
   return (
@@ -104,7 +125,7 @@ export default function AddContactsScreen() {
             <MicProvider key={index}>
               <ChatComponent
                 user={user}
-                onAdd={() => { addUser('rivotx', user.name); }}
+                onAdd={() => { addUser(username, user.name); }}
                 icon="+"
               />
             </MicProvider>

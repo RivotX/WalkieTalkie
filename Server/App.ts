@@ -5,9 +5,9 @@ import { Server, Socket } from 'socket.io';
 import cors from 'cors';
 import { Sequelize, DataTypes, Model, Op } from 'sequelize';
 import bcrypt from 'bcrypt';
-import fs from 'fs';
-import { Json } from 'sequelize/types/utils';
-import { Z_DATA_ERROR } from 'zlib';
+import fs from 'fs';//Borrar
+import { Json } from 'sequelize/types/utils';//Borrar
+import { Z_DATA_ERROR } from 'zlib';//Borrar
 
 const app = express();
 const server = createServer(app);
@@ -269,8 +269,11 @@ Messages.init(
   }
 );
 
+const connectedUsers : { [key: string]: string} = {};
+
 io.on('connection', (socket: Socket) => {
   let groups = socket.handshake.query.groups as string | undefined;
+  const username = socket.handshake.query.username as string | undefined;
   let groupsAmI: string[] = [];
   if (typeof groups === 'string' && groups.trim()) {
     try {
@@ -287,7 +290,30 @@ io.on('connection', (socket: Socket) => {
     });
   }
   console.log('User connected:', socket.id);
+  if (username) {
+    connectedUsers[username] = socket.id;
+    console.log(`Usuario registrado: ${username} con socket ID: ${socket.id}`);
+    console.log('Usuarios conectadossssssssssssssss:', connectedUsers);
+    } 
 
+
+    // =================================================================
+ // *Socket send request* 
+ // =================================================================
+  socket.on('send_request', (data: { senderId: string; receiverId: string }) => {
+    const { senderId, receiverId } = data;
+    const receiverSocketId = connectedUsers[receiverId];
+
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('receive_request', { senderId });
+      console.log(`Solicitud enviada de ${senderId} a ${receiverId}`);
+    }
+  });
+ // ======================*END Socket send request*===================
+
+ // =================================================================
+ // *Socket Join room* 
+ // =================================================================
   socket.on('join', async (data) => {
     const { currentRoom } = data;
     socket.join(currentRoom);
@@ -326,6 +352,29 @@ io.on('connection', (socket: Socket) => {
       .emit('notification', `${user ? user.username : 'null'} has entered the room.`);
     console.log(`${user ? user.username : 'null'} joined room: ${currentRoom}`);
   });
+  
+
+ // =================================================================
+ // *End Join Rooms* 
+ // =================================================================
+  socket.on('send-audio', (audioData, room) => {
+    // Emitir el audio recibido a todos los demás clientes conectados
+    socket.to(room).emit('receive-audio', audioData, room);
+    console.log('Audio data sent to all clients in room:', room);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`User disconnected del socket: ${socket.id}`);
+    for (const username in connectedUsers) {
+      if (connectedUsers[username] === socket.id) {
+        delete connectedUsers[username];
+        console.log(`Usuario desconectado: ${username}`);
+        break;
+      }
+    }
+  });
+});
+
   // socket.on('leaveAllRooms', (username) => {
   //   const rooms = socket.rooms; // O cualquier otra lógica para identificar al usuario
 
@@ -343,108 +392,9 @@ io.on('connection', (socket: Socket) => {
   //   socket.emit('leftAllRooms', { success: true });
   // });
 
-  socket.on('send-audio', (audioData, room) => {
-    // Emitir el audio recibido a todos los demás clientes conectados
-    socket.to(room).emit('receive-audio', audioData, room);
-    console.log('Audio data sent to all clients in room:', room);
-  });
-
-  socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
-  });
-});
-
  // =================================================================
  // *Solicitudes de amistad* 
  // =================================================================
- class FriendRequests extends Model {
-  declare id: number;
-  declare senderId: number;
-  declare receiverId: number;
-  declare status: 'pending' | 'accepted' | 'rejected';
-  declare createdAt: Date;
-  declare updatedAt: Date;
-}
-
-FriendRequests.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    senderId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Users', // nombre del modelo de usuarios
-        key: 'id',
-      },
-    },
-    receiverId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Users', // nombre del modelo de usuarios
-        key: 'id',
-      },
-    },
-    status: {
-      type: DataTypes.ENUM('pending', 'accepted', 'rejected'),
-      defaultValue: 'pending',
-      allowNull: false,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize, // Instancia de Sequelize
-    modelName: 'FriendRequests',
-    tableName: 'friend_requests', // Nombre de la tabla en la base de datos
-  }
-);
-app.post('/send-friend-request', async (req, res) => {
-  const { senderId, receiverId } = req.body;
-
-  if (senderId === receiverId) {
-    return res.status(400).json({ message: 'No puedes enviarte una solicitud de amistad a ti mismo.' });
-  }
-
-  // Verificar si la solicitud ya existe
-  const existingRequest = await FriendRequests.findOne({
-    where: {
-      senderId,
-      receiverId,
-      status: 'pending',
-    },
-  });
-
-  if (existingRequest) {
-    return res.status(400).json({ message: 'Ya has enviado una solicitud de amistad a este usuario.' });
-  }
-
-  try {
-    // Crear la solicitud de amistad
-    await FriendRequests.create({
-      senderId,
-      receiverId,
-    });
-
-    // Notificar al receptor (opcional)
-    // io.to(receiverId).emit('friend-request', { senderId });
-
-    res.status(201).json({ message: 'Solicitud de amistad enviada.' });
-  } catch (error) {
-    console.error('Error enviando solicitud de amistad:', error);
-    res.status(500).json({ message: 'Error al enviar la solicitud de amistad.' });
-  }
-});
 
  //==== fin solicitudes de amistad ===================================
 sequelize.sync({ alter: true }).then(() => {
