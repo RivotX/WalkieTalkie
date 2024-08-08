@@ -23,12 +23,11 @@ const AudioComponent = ({ currentRoom, userID }) => {
       const { status } = await Audio.requestPermissionsAsync();
       setPermissionStatus(status === 'granted'); // Actualiza los permisos (true o false)
     })();
-    console.log('entro a audio component');
 
   }, [currentRoom]);
 
   useEffect(() => {
-
+    console.log( socket, 'socket EN AUDIOCOMPONENT');
   }, []);
 
   // useEffect(() => {
@@ -51,7 +50,7 @@ const AudioComponent = ({ currentRoom, userID }) => {
       socket.on('receive-audio', async (base64Audio, room) => {
         console.log('Received audio data from room', room);
         const uri = `data:audio/wav;base64,${base64Audio}`;
-        console.log("audioUri", uri);
+        console.log("audio enviado", uri);
 
         // Play audio using expo-av
         const { sound } = await Audio.Sound.createAsync(

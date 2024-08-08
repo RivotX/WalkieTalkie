@@ -1,5 +1,5 @@
 //Client/app/(tabs)/Contacts.jsx
-import React from 'react';
+import {React, useState, useEffect} from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import tw from 'twrnc';
 import { useThemeColor } from '../../hooks/useThemeColor';
@@ -14,6 +14,14 @@ import { useSocket } from '../../components/context/SocketContext';
 export default function TabTwoScreen() {
   const backgroundColor = useThemeColor({}, 'background');
   const navigation = useNavigation(); // Use the useNavigation hook
+  const [socket, setSocket] = useState(useSocket()); // Estado para manejar la instancia del socket
+  
+  useEffect(() => {
+    if (socket != null) {
+      console.log(socket, 'socket EN CONTACTS');
+    }
+  },[]);
+
   const user1 = {
     name: "CharoHot",
     profile: emoGirlIcon

@@ -15,9 +15,8 @@ export default function TabTwoScreen() {
   const [socket, setSocket] = useState(useSocket()); // Estado para manejar la instancia del socket
 
   useEffect(() => {
-    console.log(socket, 'socket ANTESSSSSSSSSSSSSS');
     if (socket != null) {
-      console.log(socket);
+      console.log(socket, 'socket EN Groups');
     }
   },[]);
 

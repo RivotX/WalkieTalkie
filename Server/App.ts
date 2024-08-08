@@ -180,15 +180,24 @@ app.post('/logout', (req, res) => {
 });
 
 app.post('/searchUser', async (req, res) => {
-  const { username } = req.body;
-  console.log('server user: ' + username);
+  const { usernamesearch, username } = req.body;
+  console.log('server user: ' + usernamesearch);
 
   // Use the Op.like operator to search for usernames that contain the search string
   const users = await Users.findAll({
     where: {
-      username: {
-        [Op.like]: `%${username}%`, // This will match any username that contains the search string
-      },
+      [Op.and]: [
+        {
+          username: {
+            [Op.like]: `%${usernamesearch}%`, // This will match any username that contains the search string
+          },
+        },
+        {
+          username: {
+            [Op.ne]: username, // This will exclude the username provided
+          },
+        },
+      ],
     },
   });
 
@@ -202,74 +211,74 @@ app.post('/searchUser', async (req, res) => {
 // =================================================================
 // * Messages and socket.io*
 // =================================================================
-class Messages extends Model {
-  declare id: number;
-  declare sender_id: number;
-  declare receiver_id: number;
-  declare content: string;
-  declare timestamp: Date;
-  declare room: string;
+// class Messages extends Model {
+//   declare id: number;
+//   declare sender_id: number;
+//   declare receiver_id: number;
+//   declare content: string;
+//   declare timestamp: Date;
+//   declare room: string;
 
-  toString(): string {
-    return `<Messages ${this.id}>`;
-  }
+//   toString(): string {
+//     return `<Messages ${this.id}>`;
+//   }
 
-  serialize(): object {
-    return {
-      id: this.id,
-      sender_id: this.sender_id,
-      receiver_id: this.receiver_id,
-      content: this.content,
-      timestamp: this.timestamp.toISOString(),
-      room: this.room,
-    };
-  }
-}
+//   serialize(): object {
+//     return {
+//       id: this.id,
+//       sender_id: this.sender_id,
+//       receiver_id: this.receiver_id,
+//       content: this.content,
+//       timestamp: this.timestamp.toISOString(),
+//       room: this.room,
+//     };
+//   }
+// }
 
-Messages.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-    },
-    sender_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Users', // This is a reference to another model
-        key: 'id', // This is the column name of the referenced model
-      },
-    },
-    receiver_id: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: 'Users',
-        key: 'id',
-      },
-    },
-    content: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    timestamp: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
-    room: {
-      type: DataTypes.STRING(100),
-      defaultValue: '0',
-    },
-  },
-  {
-    sequelize, // This is the sequelize instance
-    modelName: 'Messages',
-    timestamps: false,
-  }
-);
+// Messages.init(
+//   {
+//     id: {
+//       type: DataTypes.INTEGER,
+//       primaryKey: true,
+//       autoIncrement: true,
+//     },
+//     sender_id: {
+//       type: DataTypes.INTEGER,
+//       allowNull: false,
+//       references: {
+//         model: 'Users', // This is a reference to another model
+//         key: 'id', // This is the column name of the referenced model
+//       },
+//     },
+//     receiver_id: {
+//       type: DataTypes.INTEGER,
+//       allowNull: true,
+//       references: {
+//         model: 'Users',
+//         key: 'id',
+//       },
+//     },
+//     content: {
+//       type: DataTypes.TEXT,
+//       allowNull: false,
+//     },
+//     timestamp: {
+//       type: DataTypes.DATE,
+//       defaultValue: DataTypes.NOW,
+//     },
+//     room: {
+//       type: DataTypes.STRING(100),
+//       defaultValue: '0',
+//     },
+//   },
+//   {
+//     sequelize, // This is the sequelize instance
+//     modelName: 'Messages',
+//     timestamps: false,
+//   }
+// );
 
-const connectedUsers : { [key: string]: string} = {};
+const connectedUsers: { [key: string]: string } = {};
 
 io.on('connection', (socket: Socket) => {
   let groups = socket.handshake.query.groups as string | undefined;
@@ -294,12 +303,12 @@ io.on('connection', (socket: Socket) => {
     connectedUsers[username] = socket.id;
     console.log(`Usuario registrado: ${username} con socket ID: ${socket.id}`);
     console.log('Usuarios conectadossssssssssssssss:', connectedUsers);
-    } 
+  }
 
 
-    // =================================================================
- // *Socket send request* 
- // =================================================================
+  // =================================================================
+  // *Socket send request* 
+  // =================================================================
   socket.on('send_request', (data: { senderId: string; receiverId: string }) => {
     const { senderId, receiverId } = data;
     const receiverSocketId = connectedUsers[receiverId];
@@ -309,11 +318,11 @@ io.on('connection', (socket: Socket) => {
       console.log(`Solicitud enviada de ${senderId} a ${receiverId}`);
     }
   });
- // ======================*END Socket send request*===================
+  // ======================*END Socket send request*===================
 
- // =================================================================
- // *Socket Join room* 
- // =================================================================
+  // =================================================================
+  // *Socket Join room* 
+  // =================================================================
   socket.on('join', async (data) => {
     const { currentRoom } = data;
     socket.join(currentRoom);
@@ -352,11 +361,11 @@ io.on('connection', (socket: Socket) => {
       .emit('notification', `${user ? user.username : 'null'} has entered the room.`);
     console.log(`${user ? user.username : 'null'} joined room: ${currentRoom}`);
   });
-  
 
- // =================================================================
- // *End Join Rooms* 
- // =================================================================
+
+  // =================================================================
+  // *End Join Rooms* 
+  // =================================================================
   socket.on('send-audio', (audioData, room) => {
     // Emitir el audio recibido a todos los demás clientes conectados
     socket.to(room).emit('receive-audio', audioData, room);
@@ -375,33 +384,33 @@ io.on('connection', (socket: Socket) => {
   });
 });
 
-  // socket.on('leaveAllRooms', (username) => {
-  //   const rooms = socket.rooms; // O cualquier otra lógica para identificar al usuario
+// socket.on('leaveAllRooms', (username) => {
+//   const rooms = socket.rooms; // O cualquier otra lógica para identificar al usuario
 
-  //   // Iterar sobre todas las salas a las que el usuario está unido
-  //   for (let room of rooms) {
-  //     // Asegurarse de no sacar al usuario de su propia sala de socket
-  //     if (room !== socket.id) {
-  //       socket.leave(room);
-  //       console.log(`${username} left room ${room}`);
-  //     }
-  //   }
+//   // Iterar sobre todas las salas a las que el usuario está unido
+//   for (let room of rooms) {
+//     // Asegurarse de no sacar al usuario de su propia sala de socket
+//     if (room !== socket.id) {
+//       socket.leave(room);
+//       console.log(`${username} left room ${room}`);
+//     }
+//   }
 
-  //   // Aquí puedes emitir un evento de confirmación si es necesario
-  //   // Por ejemplo, para confirmar que el usuario ha salido de todas las salas
-  //   socket.emit('leftAllRooms', { success: true });
-  // });
+//   // Aquí puedes emitir un evento de confirmación si es necesario
+//   // Por ejemplo, para confirmar que el usuario ha salido de todas las salas
+//   socket.emit('leftAllRooms', { success: true });
+// });
 
- // =================================================================
- // *Solicitudes de amistad* 
- // =================================================================
+// =================================================================
+// *Solicitudes de amistad* 
+// =================================================================
 
- //==== fin solicitudes de amistad ===================================
-sequelize.sync({ alter: true }).then(() => {
-  app.listen(3000, () => {
-    console.log('Express Server running on port 3000');
+//==== fin solicitudes de amistad ===================================
+  sequelize.sync({ force: true }).then(() => {
+    app.listen(3000, () => {
+      console.log('Express Server running on port 3000');
+    });
+    server.listen(3001, () => {
+      console.log('Socket.io Server running on port 3001');
+    });
   });
-  server.listen(3001, () => {
-    console.log('Socket.io Server running on port 3001');
-  });
-});
