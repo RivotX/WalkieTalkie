@@ -7,6 +7,7 @@ import AudioComponent from '../../components/AudioComponent';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import axios from 'axios';
 import getEnvVars from '../../config';
+import { useSocket } from '../../components/context/SocketContext';
 
 const Index = () => {
   const backgroundColor = useThemeColor({}, 'background');
@@ -15,14 +16,30 @@ const Index = () => {
   const rooms = ['room1', 'room2', 'room3', 'room4', 'room5'];
   const [userID, setUserID] = useState();
   const { SERVER_URL } = getEnvVars();
+  const [socket, setSocket] = useState(useSocket());
+
 
 
   useEffect(() => {
-    axios.get(`http://localhost:3000/getsession`,{ withCredentials: true })
-    // axios.get(`${SERVER_URL}/getsession`, { withCredentials: true })
-      .then((res) => { console.log("SESSIONEEEEEEEEEEEEEEEEEES", res.data); setUserID(res.data.user.id) })
-      .catch((error) => { console.log(error) });
+    if (socket != null) {
+          console.log(socket, 'socket EN INDEX');
+      axios.get(`http://localhost:3000/getsession`, { withCredentials: true })
+        // axios.get(`${SERVER_URL}/getsession`, { withCredentials: true })
+        .then((res) => { setUserID(res.data.user.id) })
+        .catch((error) => { console.log(error) });
+      socket.on('receive_request', (data) => {
+        console.log('Solicitud recibida de:', data.senderId);
+      });
+      return () => {
+        console.log('Desconectando socket INDEX');
+        socket.disconnect();
+      };
+    }
   }, [])
+
+  
+
+
   return (
     <View style={tw`flex-1 items-center justify-center bg-[${backgroundColor}]`}>
       <View>

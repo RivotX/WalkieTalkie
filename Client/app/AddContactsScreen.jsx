@@ -31,13 +31,13 @@ export default function AddContactsScreen() {
   useEffect(() => {
     axios.get(`http://localhost:3000/getsession`, { withCredentials: true })
       // axios.get(`${SERVER_URL}/getsession`, { withCredentials: true })
-      .then((res) => { console.log("SESSIONEEEEEEEEEEEEEEEEEES", res.data); setUsername(res.data.user.username) })
+      .then((res) => { setUsername(res.data.user.username) })
       .catch((error) => { console.log(error) });
   }, [])
 
   const { SERVER_URL } = getEnvVars();
   const onSearchUser = () => {
-    axios.post(`${SERVER_URL}/searchUser`, { username: text })
+    axios.post(`${SERVER_URL}/searchUser`, { usernamesearch: text, username : username })
       .then((res) => {
         console.log(res.data);
         const usersData = res.data.map((user) => ({
@@ -57,29 +57,21 @@ export default function AddContactsScreen() {
   useEffect(() => {
     // Automatically focus the TextInput when the screen is loaded
     inputRef.current?.focus();
+    if (socket != null) {
+      console.log(socket, 'socket EN AddContactsScreen');
+    }
   }, []);
 
   useEffect(() => {
     console.log(userFound);
   }, [userFound]);
 
-  useEffect(() => {
-    if (socket != null) {
-      socket.on('receive_request', (senderId) => {
-        console.log('Solicitud recibida de:', data.senderId);
-      });
-      return () => {
-        socket.disconnect();
-      };
-    }
-  }, [socket]);
-
   // Solicitud de amistad
   const addUser = (senderId, receiverId) => {
     if (socket != null) {
       socket.emit('send_request', { senderId, receiverId });
 
-    console.log('Solicitud enviada a:', receiverId);
+      console.log('Solicitud enviada a:', receiverId);
     }
 
 
